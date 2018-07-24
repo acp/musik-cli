@@ -1,25 +1,21 @@
-const fs = require('fs'),
-      axios = require('axios'),
-      cheerio = require('cheerio'),
-      print = console.log,
-      param = process.argv[2];
+const got = require('got');
+const url = process.argv[2];
 
-function search() {
-  axios.get(param)
-    .then(function (response) {
-      if (response.status == 200) {
-        const body = response.data;
-        const $ = cheerio.load(body);
+(async () => {
+    console.time('Process');
+    
+    const response = await got(url);
+    const html = response.body;
 
-        let title = $('h1.header_with_cover_art-primary_info-title.header_with_cover_art-primary_info-title--white').text(),
-        artist = $('h2 a.header_with_cover_art-primary_info-primary_artist').text(),
-        releaseDate = $('div.metadata_unit').eq(0).text(),
-        imageLink = $('img[class="cover_art-image"]').attr('src');
+    const title = html.match(/<h1\n            class="header_with_cover_art-primary_info-title header_with_cover_art-primary_info-title--white"\n          >(.+?)<\/h1>/i)[1];
+    const artist = html.match(/<a\n              href=".+?"\n              class="header_with_cover_art-primary_info-primary_artist"\n            >(.+?)<\/a>/i)[1];
+    const release_date = html.match(/<div class="metadata_unit">(.+?)<\/div>/i)[1];
+    const image = html.match(/<img alt=".+?" class="cover_art-image" src="(.+?)" srcset=".+?" \/>/i)[1];
 
-        stringify(title, artist, releaseDate, imageLink)
-      }
-    })
-}
+    console.timeEnd('Process');
+
+    stringify(title, artist, release_date, image);
+})();
 
 function stringify(title, artist, releaseDate, imageLink) {
   let str = `
@@ -33,12 +29,9 @@ function stringify(title, artist, releaseDate, imageLink) {
   
   let str3 = `
   <br>
-  <center><a href="${param}" target="_blank" class="link-genius">View on Genius</a>
+  <center><a href="${url}" target="_blank" class="link-genius">View on Genius</a>
   </center>
   `
 
-  print(str+str2+str3)
+  console.log(str+str2+str3)
 }
-
-search()
-
